@@ -1,0 +1,69 @@
+{%- macro random_int(len) -%}
+  {%- for _ in range(len) -%}
+    {{ range(10) | random }}
+  {%- endfor -%}
+{%- endmacro -%}
+[server]
+
+log_level = "debug"
+inet = "0.0.0.0:8080"
+workers = 4
+reporter_token = "{{ random_int(32) }}"
+
+[assets]
+
+path = "./res/assets/"
+
+[branding]
+
+page_title = "Betacloud Status"
+page_url = "https://status.betacloud.de/"
+company_name = "Betacloud Solutions GmbHL"
+icon_color = "#1972F5"
+icon_url = "https://www.betacloud.de/images/logo-betacloud.png"
+logo_color = "#1972F5"
+logo_url = "https://www.betacloud.de/images/logo-betacloud.png"
+website_url = "https://www.betacloud.de"
+support_url = "mailto:support@betacloud.de"
+custom_html = ""
+
+[metrics]
+
+poll_interval = 120
+poll_retry = 2
+
+poll_http_status_healthy_above = 200
+poll_http_status_healthy_below = 400
+
+poll_delay_dead = 30
+poll_delay_sick = 10
+
+push_delay_dead = 20
+
+push_system_cpu_sick_above = 0.90
+push_system_ram_sick_above = 0.90
+
+[notify]
+
+reminder_interval = 300
+
+[probe]
+
+[[probe.service]]
+
+id = "routers"
+label = "Routers"
+
+{% for router in data %}
+{% if router.Status == "ACTIVE" %}
+[[probe.service.node]]
+
+id = "{{ router.ID }}"
+label = "{{ router.ID }}"
+mode = "poll"
+
+replicas = [
+  "icmp://{{ router['Fixed IP Addresses']|regex_replace("ip_address='(.*)', subnet_id=.*", "\g<1>") }}"
+]
+{% endif -%}
+{% endfor -%}
